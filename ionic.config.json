@@ -1,0 +1,7 @@
+{
+  "name": "sakinah-frozen-pos",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "vue-vite"
+}
