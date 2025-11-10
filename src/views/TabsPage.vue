@@ -3,6 +3,11 @@
     <ion-router-outlet></ion-router-outlet>
 
     <ion-tab-bar slot="bottom">
+      <ion-tab-button tab="dashboard" href="/dashboard">
+        <ion-icon :icon="statsChartOutline" />
+        <ion-label>Dashboard</ion-label>
+      </ion-tab-button>
+
       <ion-tab-button tab="orders" href="/orders">
         <ion-icon :icon="listOutline" />
         <ion-label>Pesanan</ion-label>
@@ -36,5 +41,5 @@ import {
   IonIcon,
   IonLabel
 } from '@ionic/vue'
-import {listOutline, cubeOutline, personCircleOutline, peopleOutline} from 'ionicons/icons'
+import {listOutline, cubeOutline, personCircleOutline, peopleOutline, statsChartOutline} from 'ionicons/icons'
 </script>

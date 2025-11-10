@@ -7,8 +7,7 @@
     </ion-header>
 
     <ion-content class="ion-padding">
-
-      <!-- If not logged in -->
+      <!-- 🔐 If not logged in -->
       <div v-if="!user">
         <ion-card>
           <ion-card-header>
@@ -23,10 +22,9 @@
         </ion-card>
       </div>
 
-      <!-- If logged in -->
+      <!-- ✅ If logged in -->
       <div v-else>
-
-        <!-- Add new product form -->
+        <!-- ➕ Add new product -->
         <ion-card>
           <ion-card-header>
             <ion-card-title>Tambah Produk Baru</ion-card-title>
@@ -41,10 +39,20 @@
               ></ion-input>
             </ion-item>
 
+            <ion-item>
+              <ion-label position="stacked">Harga per Unit (NTD)</ion-label>
+              <ion-input type="number" v-model="newPrice"></ion-input>
+            </ion-item>
 
             <ion-item>
-              <ion-label position="floating">Harga per kg (NTD)</ion-label>
-              <ion-input type="number" v-model="newPrice"></ion-input>
+              <ion-label position="stacked">Satuan</ion-label>
+              <ion-select v-model="newUnit">
+                <ion-select-option value="kg">kg</ion-select-option>
+                <ion-select-option value="pcs">pcs</ion-select-option>
+                <ion-select-option value="box">box</ion-select-option>
+                <ion-select-option value="pack">pack</ion-select-option>
+                <ion-select-option value="liter">liter</ion-select-option>
+              </ion-select>
             </ion-item>
 
             <ion-button
@@ -58,7 +66,7 @@
           </ion-card-content>
         </ion-card>
 
-        <!-- Product list -->
+        <!-- 📋 Product list -->
         <ion-card>
           <ion-card-header>
             <ion-card-title>Produk Aktif</ion-card-title>
@@ -68,7 +76,7 @@
               <ion-item v-for="p in products" :key="p.id">
                 <ion-label>
                   <h2>{{ p.name }}</h2>
-                  <p>@{{ p.price_per_kg }} NTD / kg</p>
+                  <p>@{{ p.sell_price }} NTD / {{ p.unit }}</p>
                 </ion-label>
 
                 <ion-button
@@ -88,16 +96,22 @@
         </ion-card>
       </div>
 
-      <!-- Edit Price Alert -->
+      <!-- ✏️ Edit Product -->
       <ion-alert
           :is-open="editState.open"
-          header="Ubah Harga Produk"
+          header="Ubah Harga / Satuan"
           :inputs="[
           {
             name: 'price',
             type: 'number',
             value: editState.value,
-            placeholder: 'Harga per kg (NTD)'
+            placeholder: 'Harga per unit (NTD)',
+          },
+          {
+            name: 'unit',
+            type: 'text',
+            value: editState.unit,
+            placeholder: 'Satuan (mis. kg, pcs)',
           }
         ]"
           :buttons="[
@@ -126,7 +140,10 @@ import {
   IonInput,
   IonButton,
   IonList,
-  IonAlert
+  IonAlert,
+  IonSelect,
+  IonSelectOption,
+  toastController,
 } from '@ionic/vue'
 import { ref, onMounted, reactive } from 'vue'
 import { supabase } from '@/supabase'
@@ -136,81 +153,99 @@ const { user } = useSupabaseAuth()
 
 const newName = ref('')
 const newPrice = ref('')
+const newUnit = ref('kg')
 const products = ref<any[]>([])
 const saving = ref(false)
+
+// Toast helper
+const showToast = async (message: string, color: string = 'primary') => {
+  const toast = await toastController.create({
+    message,
+    duration: 1500,
+    color,
+    position: 'bottom'
+  })
+  await toast.present()
+}
 
 // Edit state
 const editState = reactive({
   open: false,
   product: null as any,
-  value: ''
+  value: '',
+  unit: 'kg'
 })
 
+// Load
 const loadProducts = async () => {
   const { data, error } = await supabase
       .from('products')
       .select('*')
       .order('created_at', { ascending: false })
-
   if (!error && data) products.value = data
   else console.error(error)
 }
 
+// Add
 const addProduct = async () => {
-  if (!user.value) return alert('Silakan login terlebih dahulu.')
-  if (!newName.value || !newPrice.value) return alert('Nama dan harga wajib diisi.')
+  if (!user.value) return showToast('Silakan login terlebih dahulu.', 'danger')
+  if (!newName.value || !newPrice.value)
+    return showToast('Nama dan harga wajib diisi.', 'danger')
 
   try {
     saving.value = true
-    const { error } = await supabase
-        .from('products')
-        .insert({
-          name: newName.value.trim(),
-          price_per_kg: Number(newPrice.value),
-          is_active: true
-        })
-
+    const { error } = await supabase.from('products').insert({
+      name: newName.value.trim(),
+      sell_price: Number(newPrice.value),
+      unit: newUnit.value,
+      is_active: true
+    })
     if (error) throw error
-
-    alert('Produk berhasil ditambahkan.')
+    showToast('Produk berhasil ditambahkan.', 'success')
     newName.value = ''
     newPrice.value = ''
+    newUnit.value = 'kg'
     await loadProducts()
   } catch (err: any) {
-    alert('Gagal menambah produk: ' + err.message)
+    showToast('Gagal menambah produk: ' + err.message, 'danger')
   } finally {
     saving.value = false
   }
 }
 
+// Edit
 const openEditPrice = (p: any) => {
   editState.product = p
-  editState.value = String(p.price_per_kg)
+  editState.value = String(p.sell_price)
+  editState.unit = p.unit
   editState.open = true
 }
-
 const closeEdit = () => {
   editState.open = false
   editState.product = null
   editState.value = ''
+  editState.unit = 'kg'
 }
 
 const handleSaveEdit = async (data: any) => {
   const newPrice = Number(data.price)
-  if (isNaN(newPrice) || newPrice <= 0) return
+  const newUnit = String(data.unit || '').trim()
+  if (isNaN(newPrice) || newPrice <= 0 || !newUnit) {
+    showToast('Input tidak valid.', 'danger')
+    return
+  }
 
   const { error } = await supabase
       .from('products')
-      .update({ price_per_kg: newPrice })
+      .update({ sell_price: newPrice, unit: newUnit })
       .eq('id', editState.product.id)
 
   if (error) {
-    alert('Gagal mengubah harga: ' + error.message)
+    showToast('Gagal mengubah produk: ' + error.message, 'danger')
   } else {
-    alert('Harga berhasil diperbarui.')
+    showToast('Produk berhasil diperbarui.', 'success')
     await loadProducts()
   }
-
   closeEdit()
 }
 

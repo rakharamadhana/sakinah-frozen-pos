@@ -236,11 +236,8 @@ const copyOrder = async (order: any) => {
     let text = `Rincian Order (${order.customers?.name || 'N/A'})\n\n`
     if (items?.length) {
       text += items
-          .map(
-              i =>
-                  `${i.products?.name} @${i.unit_price} x ${i.weight_kg.toFixed(
-                      3
-                  )} = ${i.line_total} NTD`
+          .map(i =>
+              `${i.products?.name} @${i.unit_price} x ${i.weight_kg.toFixed(3)} ${i.products?.unit || ''} = ${i.line_total} NTD`
           )
           .join('\n')
       text += `\n\nTOTAL ${order.total_amount} NTD`
