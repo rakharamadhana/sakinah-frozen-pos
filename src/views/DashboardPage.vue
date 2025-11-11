@@ -85,7 +85,7 @@
                   Revenue: {{ p.total_revenue }} NTD
                 </p>
                 <p class="text-sm text-gray-500">
-                  Cost: {{ p.total_cost }} NTDR
+                  Cost: {{ p.total_cost }} NTD
                 </p>
               </ion-label>
 
