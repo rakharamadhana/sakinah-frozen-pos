@@ -230,7 +230,6 @@ const saveOrder = async () => {
       weight_kg: i.quantity, // keep name for backward compatibility
       unit_price: i.unitPrice,
       line_total: i.lineTotal,
-      unit: i.product.unit, // optional, if you added column
     }));
     const { error: iErr } = await supabase
         .from("order_items")
